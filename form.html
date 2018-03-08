@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            input[type=text], select, textarea {
+                width: 100%;
+                padding: 12px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                box-sizing: border-box;
+                margin-top: 6px;
+                margin-bottom: 16px;
+                resize: vertical;
+            }
+
+            input[type=submit] {
+                background-color: #4CAF50;
+                color: white;
+                padding: 12px 20px;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+            }
+
+            input[type=submit]:hover {
+                background-color: #45a049;
+            }
+
+            .container {
+                border-radius: 5px;
+                background-color: #f2f2f2;
+                padding: 20px;
+            }
+        </style>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">               
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.17.0/jquery.validate.min.js"></script>
+        <script>
+            $(function () {
+                var socket = io();
+                $("form[name='userForm']").validate({
+                    // Specify validation rules
+                    rules: {
+                        // The key name on the left side is the name attribute
+                        // of an input field. Validation rules are defined
+                        // on the right side
+                        firstname: "required",
+                        lastname: "required",
+                        subject: "required",
+                    },
+                    // Specify validation error messages
+                    messages: {
+                        firstname: "Please enter your firstname",
+                        lastname: "Please enter your lastname",
+                        subject: "Please enter your subject",
+                    },
+                    // Make sure the form is submitted to the destination defined
+                    // in the "action" attribute of the form when valid
+                    submitHandler: function (form) {
+                        socket.emit('user_data', {'firstname': $('#fname').val(), 'lastname': $('#lname').val(), 'country': $('#country').val(), 'subject': $('#subject').val()});
+                        $('#fname').val('');
+                        $('#lname').val('');
+                        $('#subject').val('');
+                        return false;
+                    }
+                });
+
+                $("form[name='userEditForm']").validate({
+                    // Specify validation rules
+                    rules: {
+                        // The key name on the left side is the name attribute
+                        // of an input field. Validation rules are defined
+                        // on the right side
+                        firstname: "required",
+                        lastname: "required",
+                        subject: "required",
+                    },
+                    // Specify validation error messages
+                    messages: {
+                        firstname: "Please enter your firstname",
+                        lastname: "Please enter your lastname",
+                        subject: "Please enter your subject",
+                    },
+                    // Make sure the form is submitted to the destination defined
+                    // in the "action" attribute of the form when valid
+                    submitHandler: function (form) {
+                        $('#userEditForm').submit(function () {
+                            socket.emit('update_user_data', {'id': $('#user_id').val(), 'firstname': $('#first_name').val(), 'lastname': $('#last_name').val(), 'country': $('#edit_country').val(), 'subject': $('#edit_subject').val()});
+                            return false;
+                        });
+                    }
+                });
+
+                socket.on('user_list', function (data) {
+                    $('#user_list').html(data);
+                });
+
+                socket.on('user_detail', function (data) {
+                    $('#user_id').val(data[0].id);
+                    $('#first_name').val(data[0].firstname);
+                    $('#last_name').val(data[0].lastname);
+                    $('#edit_country').val(data[0].country);
+                    $('#edit_subject').val(data[0].subject);
+                });
+
+                $(document).on('click', '.edit', function () {
+                    var id = $(this).attr('data-id');
+                    socket.emit('edit_user', id);
+                    $('#exampleModalCenter').modal('show');
+                });
+
+                $(document).on('click', '.delete', function () {
+                    var id = $(this).attr('data-id');
+                    var r = confirm("Are you sure want to delete it!");
+                    if (r == true) {
+                        socket.emit('delete_user', id);
+                    }
+                });
+
+                socket.on('user_notification', function (data) {
+                    $('#user_notification').html(data);
+                    $('#user_notification').fadeIn().delay(800).fadeOut();
+                });
+
+                socket.on('user_notification1', function (data) {
+                    $('#user_notification1').html(data);
+                    $('#user_notification1').fadeIn().delay(800).fadeOut();
+                });
+
+            });
+        </script>
+    </head>    
+    <body>
+
+        <!-- <h3>Contact Form</h3> -->
+
+        <div class="container">
+            <div id="user_notification1" style="text-align: center;"></div>
+            <form action="javascript:void(0)" id="userForm" name="userForm" method="post">
+                <label for="fname">First Name</label>
+                <input type="text" id="fname" name="firstname" placeholder="Your name..">
+
+                <label for="lname">Last Name</label>
+                <input type="text" id="lname" name="lastname" placeholder="Your last name..">
+
+                <label for="country">Country</label>
+                <select id="country" name="country">
+                    <option value="australia">Australia</option>
+                    <option value="canada">Canada</option>
+                    <option value="usa">USA</option>
+                </select>
+
+                <label for="subject">Subject</label>
+                <textarea id="subject" name="subject" placeholder="Write something.." style="height:200px"></textarea>
+                <br>
+                <input type="submit" value="Submit">
+            </form>
+            <div id="user_list"></div>
+        </div>
+        <!-- Modal -->
+        <div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLongTitle">Modal title</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <form id="userEditForm" name="userEditForm" action="javascript:void(0)" method="post">
+                        <div class="modal-body">
+                            <div id="user_notification" style="text-align: center;"></div>
+                            <input type="hidden" id="user_id">
+                            <label for="fname">First Name</label>
+                            <input type="text" id="first_name" name="firstname" placeholder="Your name..">
+
+                            <label for="lname">Last Name</label>
+                            <input type="text" id="last_name" name="lastname" placeholder="Your last name..">
+
+                            <label for="country">Country</label>
+                            <select id="edit_country" name="country">
+                                <option value="australia">Australia</option>
+                                <option value="canada">Canada</option>
+                                <option value="usa">USA</option>
+                            </select>
+
+                            <label for="subject">Subject</label>
+                            <textarea id="edit_subject" name="subject" placeholder="Write something.." style="height:200px"></textarea>
+
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </body>
+</html>
